@@ -12,7 +12,7 @@ export const sendVerificationEmail = async (
     }
   });
 
-  const link = `http://localhost:5000/api/auth/verify-email?token=${token}`;
+  const link = `https://expensetrackerbackend-q4gp.onrender.com/api/auth/verify-email?token=${token}`;
 
   await transporter.sendMail({
     from: `"Trip Expense Manager" <${process.env.MAIL_USER}>`,
