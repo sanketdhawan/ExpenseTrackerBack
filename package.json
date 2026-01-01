@@ -2,6 +2,8 @@
   "name": "mean-auth-backend",
   "private": true,
   "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
     "dev": "nodemon src/server.ts"
   },
   "dependencies": {
