@@ -12,7 +12,7 @@ export const sendVerificationEmail = async (
         }
     });
     
-    const baseUrl = "https://expensetrackerbackend-q4gp.onrender.com"; //process.env.APP_BASE_URL;
+    const baseUrl = "https://expensetrackerback-2.onrender.com"; //process.env.APP_BASE_URL;
 
     if (!baseUrl) {
         throw new Error('APP_BASE_URL is not defined');
