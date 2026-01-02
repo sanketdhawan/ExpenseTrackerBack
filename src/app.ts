@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
-
+import tripRoutes from './modules/trips/trip.routes';
 const app = express();
 
 /**
@@ -33,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
  * ✅ Routes
  */
 app.use('/api/auth', authRoutes);
-
+app.use('/api/trips', tripRoutes);
 /**
  * ✅ Health check (useful for Render)
  */
