@@ -1,22 +1,13 @@
 import { Router } from 'express';
-import { register, login, verifyEmail, requestOtp, verifyOtp } from './auth.controller';
-import { authMiddleware } from '../../middlewares/auth.middleware';
+import { firebaseAuthMiddleware } from '../../middlewares/auth.middleware';
+import { syncFirebaseUser, getMe } from './auth.controller';
 
 const router = Router();
 
+// Create user in DB on first Firebase login
+router.post('/sync-user', firebaseAuthMiddleware, syncFirebaseUser);
 
-
-router.post('/request-otp', requestOtp);
-router.post('/verify-otp', verifyOtp);
-
-router.post('/register', register);
-router.post('/login', login);
-router.get('/verify-email', verifyEmail);
-router.get('/me', authMiddleware, (req, res) => {
-    res.json({
-        message: 'Token is valid',
-        userId: req.userId
-    });
-});
+// Protected user info
+router.get('/me', firebaseAuthMiddleware, getMe);
 
 export default router;

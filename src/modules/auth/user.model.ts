@@ -1,18 +1,16 @@
 import mongoose from 'mongoose';
 
-const userSchema = new mongoose.Schema({
-  name: { type: String },
-  email: { type: String, required: true, unique: true },
+const userSchema = new mongoose.Schema(
+  {
+    firebaseUid: { type: String, required: true, unique: true },
+    email: { type: String, required: true },
+    name: { type: String },
 
-  password: { type: String }, // optional for OTP users
+    isVerified: { type: Boolean, default: false },
 
-  isVerified: { type: Boolean, default: false },
-
-  verificationToken: { type: String },
-
-  otpHash: { type: String },
-  otpExpiresAt: { type: Date }
-
-}, { timestamps: true });
+    verificationDeadline: { type: Date } // ⏱ 1 hour limit
+  },
+  { timestamps: true }
+);
 
 export default mongoose.model('User', userSchema);

@@ -12,7 +12,7 @@ app.use(
   cors({
     origin: [
       'http://localhost:4200',
-      'https://expensetrackerbackend-q4gp.onrender.com'
+      'https://expensetrackerback-2.onrender.com'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

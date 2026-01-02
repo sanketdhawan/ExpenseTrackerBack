@@ -1,11 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import admin from '../config/firebase';
 
-interface JwtPayload {
-  id: string;
-}
-
-export const authMiddleware = (
+export const firebaseAuthMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -19,14 +15,13 @@ export const authMiddleware = (
   const token = header.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as JwtPayload;
+    const decoded = await admin.auth().verifyIdToken(token);
 
-    req.userId = decoded.id; // attach user id
+    req.firebaseUid = decoded.uid;
+    req.email = decoded.email || '';
+
     next();
   } catch {
-    return res.status(401).json({ message: 'Invalid token' });
+    return res.status(401).json({ message: 'Invalid Firebase token' });
   }
 };
