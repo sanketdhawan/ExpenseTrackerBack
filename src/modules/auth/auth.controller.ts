@@ -3,10 +3,10 @@ import User from './user.model';
 import admin from '../../config/firebase';
 
 export const syncFirebaseUser = async (req: Request, res: Response) => {
-  const { firebaseUid, email } = req;
+  const firebaseUid = req.firebaseUid;
+  const email = req.firebaseEmail;
 
-  // name can come from frontend OR Firebase displayName
-  const nameFromBody = req.body?.name;
+  const { firstName, lastName } = req.body;
 
   if (!firebaseUid || !email) {
     return res.status(400).json({ message: 'Invalid Firebase user' });
@@ -18,32 +18,21 @@ export const syncFirebaseUser = async (req: Request, res: Response) => {
     user = await User.create({
       firebaseUid,
       email,
-      name: nameFromBody || null, // ✅ STORE NAME
+      firstName,
+      lastName,
       isVerified: false,
       verificationDeadline: new Date(Date.now() + 60 * 60 * 1000)
-    });
-  }
-
-  // ⛔ delete if verification expired
-  if (
-    !user.isVerified &&
-    user.verificationDeadline &&
-    user.verificationDeadline < new Date()
-  ) {
-    await user.deleteOne();
-    return res.status(403).json({
-      message: 'Email not verified within 1 hour. Account deleted.'
     });
   }
 
   res.json({
     id: user._id,
     email: user.email,
-    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
     isVerified: user.isVerified
   });
 };
-
 
 
 export const getMe = async (req: Request, res: Response) => {
@@ -57,18 +46,14 @@ export const getMe = async (req: Request, res: Response) => {
     return res.status(404).json({ message: 'User not found' });
   }
 
-  // 🔹 Get Firebase verification state
   const firebaseUser = await admin.auth().getUser(req.firebaseUid);
-  const firebaseVerified = firebaseUser.emailVerified === true;
 
-  // ✅ Auto-verify if Firebase says verified
-  if (firebaseVerified && !user.isVerified) {
+  if (firebaseUser.emailVerified && !user.isVerified) {
     user.isVerified = true;
     user.verificationDeadline = undefined;
     await user.save();
   }
 
-  // ❌ Delete account if verification expired
   if (
     !user.isVerified &&
     user.verificationDeadline &&
@@ -80,12 +65,13 @@ export const getMe = async (req: Request, res: Response) => {
     });
   }
 
-  // ✅ Normal response
   res.json({
     id: user._id,
     email: user.email,
-    name: user.name || null,
+    firstName: user.firstName,
+    lastName: user.lastName,
     isVerified: user.isVerified,
-    verificationDeadline: user.verificationDeadline || null
+    verificationDeadline: user.verificationDeadline ?? null
   });
 };
+

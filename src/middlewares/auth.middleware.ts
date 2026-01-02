@@ -18,7 +18,7 @@ export const firebaseAuthMiddleware = async (
     const decoded = await admin.auth().verifyIdToken(token);
 
     req.firebaseUid = decoded.uid;
-    req.email = decoded.email || '';
+    req.firebaseEmail = decoded.email ?? null;
 
     next();
   } catch {
