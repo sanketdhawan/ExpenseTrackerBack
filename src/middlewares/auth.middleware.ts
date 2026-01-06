@@ -17,11 +17,16 @@ export const firebaseAuthMiddleware = async (
   try {
     const decoded = await admin.auth().verifyIdToken(token);
 
+    // 🔒 HARD GUARANTEES
+    if (!decoded?.uid) {
+      return res.status(401).json({ message: 'Invalid Firebase token' });
+    }
+
     req.firebaseUid = decoded.uid;
     req.firebaseEmail = decoded.email ?? null;
 
-    next();
-  } catch {
+    return next();
+  } catch (err) {
     return res.status(401).json({ message: 'Invalid Firebase token' });
   }
 };

@@ -1,6 +1,13 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 
-const tripSchema = new mongoose.Schema(
+export interface ITrip extends Document {
+  name: string;
+  avatarColor: string;
+  avatarInitials: string;
+  createdBy: mongoose.Types.ObjectId;
+}
+
+const tripSchema = new mongoose.Schema<ITrip>(
   {
     name: { type: String, required: true },
     avatarColor: { type: String, required: true },
@@ -14,4 +21,5 @@ const tripSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model('Trip', tripSchema);
+const Trip: Model<ITrip> = mongoose.model<ITrip>('Trip', tripSchema);
+export default Trip;

@@ -1,9 +1,13 @@
 import { Router } from 'express';
 import { firebaseAuthMiddleware } from '../../middlewares/auth.middleware';
-import { getMyTrips } from './trip.controller';
+import { getMyTrips, createTrip } from './trip.controller';
 
 const router = Router();
 
-router.get('/my', firebaseAuthMiddleware, getMyTrips);
+// Create trip
+router.post('/create', firebaseAuthMiddleware, createTrip);
+
+// My trips
+router.get('/mytrips', firebaseAuthMiddleware, getMyTrips);
 
 export default router;

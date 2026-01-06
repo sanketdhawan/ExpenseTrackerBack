@@ -21,7 +21,18 @@ const tripMemberSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🚫 Prevent duplicate membership
+// schema fields...
+
 tripMemberSchema.index({ tripId: 1, userId: 1 }, { unique: true });
+
+// 🔒 SAFETY GUARD
+tripMemberSchema.pre('save', function (next) {
+  if (!this.tripId || !this.userId) {
+    return next(
+      new Error('TripMember validation failed: tripId and userId are required')
+    );
+  }
+  next();
+});
 
 export default mongoose.model('TripMember', tripMemberSchema);
