@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import Trip from './trip.model';
-import TripMember from './trip-member.model';
+import TripMember from './members/trip-member.model';
 import User from '../auth/user.model';
 import { TripDoc } from './trip.types';
 
