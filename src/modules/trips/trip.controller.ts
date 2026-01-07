@@ -3,13 +3,16 @@ import Trip from './trip.model';
 import TripMember from './members/trip-member.model';
 import User from '../auth/user.model';
 import { TripDoc } from './trip.types';
+import { generatePastelColor } from './trip.utils';
+import TripBuddy from './buddies/trip-buddy.model';
+
+
 
 export const createTrip = async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
     const firebaseUid = req.firebaseUid;
 
-    // 🔒 HARD BLOCK
     if (!firebaseUid) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -23,6 +26,21 @@ export const createTrip = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    /* --------------------------------
+       ✅ SAFE NAME RESOLUTION (NO user.name)
+    --------------------------------- */
+    const emailPrefix =
+      user.email?.split('@')[0] ?? 'User';
+
+    const firstName =
+      user.firstName?.trim() || emailPrefix;
+
+    const lastName =
+      user.lastName?.trim() || '-';
+
+    /* --------------------------------
+       CREATE TRIP
+    --------------------------------- */
     const avatarInitials = name
       .split(' ')
       .map((w: string) => w.charAt(0))
@@ -32,24 +50,32 @@ export const createTrip = async (req: Request, res: Response) => {
 
     const trip = await Trip.create({
       name: name.trim(),
-      avatarColor: '#6366F1',
+      avatarColor: generatePastelColor(),
       avatarInitials,
       createdBy: user._id
     });
 
-    if (!trip?._id) {
-      return res.status(500).json({ message: 'Trip creation failed' });
-    }
-
-    // 🔒 DOUBLE SAFETY
-    if (!user._id) {
-      return res.status(500).json({ message: 'User ID missing' });
-    }
-
+    /* --------------------------------
+       TRIP MEMBER (ACCESS CONTROL)
+    --------------------------------- */
     await TripMember.create({
       tripId: trip._id,
       userId: user._id,
       role: 'admin'
+    });
+
+    /* --------------------------------
+       ✅ DEFAULT ADMIN BUDDY (FIXED)
+    --------------------------------- */
+    await TripBuddy.create({
+      tripId: trip._id,
+      userId: user._id,
+      firstName,
+      lastName,
+      email: user.email,
+      status: 'joined',
+      role: 'admin',
+      invitedBy: user._id
     });
 
     return res.status(201).json({
@@ -62,14 +88,12 @@ export const createTrip = async (req: Request, res: Response) => {
 
   } catch (err: any) {
     console.error('CREATE TRIP ERROR:', err);
-
-    if (err.code === 11000) {
-      return res.status(409).json({ message: 'Trip already exists for user' });
-    }
-
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+
 
 
 

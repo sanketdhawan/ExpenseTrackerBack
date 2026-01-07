@@ -2,14 +2,40 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
   {
-    firebaseUid: { type: String, required: true, unique: true },
-    email: { type: String, required: true },
-    firstName: { type: String },
-    lastName: { type: String },
+    firebaseUid: {
+      type: String,
+      required: true,
+      unique: true
+    },
 
-    isVerified: { type: Boolean, default: false },
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true
+    },
 
-    verificationDeadline: { type: Date } // ⏱ 1 hour limit
+    // 🔒 HARD REQUIRE
+    firstName: {
+      type: String,
+      required: true,
+      trim: true
+    },
+
+    lastName: {
+      type: String,
+      required: true,
+      trim: true
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+
+    verificationDeadline: {
+      type: Date
+    }
   },
   { timestamps: true }
 );

@@ -5,106 +5,99 @@ import Trip from '../trip.model';
 import User from '../../auth/user.model';
 
 export const addTripBuddies = async (req: Request, res: Response) => {
-    const { tripId } = req.params;
-    const firebaseUid = req.firebaseUid;
-    const buddies = req.body?.buddies;
+  const { tripId } = req.params;
+  const firebaseUid = req.firebaseUid;
+  const buddies = req.body?.buddies ?? [];
 
-    if (!firebaseUid) {
-        return res.status(401).json({ message: 'Unauthorized' });
+  if (!firebaseUid) return res.status(401).json({ message: 'Unauthorized' });
+  if (!mongoose.Types.ObjectId.isValid(tripId))
+    return res.status(400).json({ message: 'Invalid trip id' });
+
+  const user = await User.findOne({ firebaseUid });
+  if (!user) return res.status(404).json({ message: 'User not found' });
+
+  const trip = await Trip.findById(tripId);
+  if (!trip) return res.status(404).json({ message: 'Trip not found' });
+
+  /* =====================================================
+     1️⃣ FORCE CREATOR AS ADMIN WITH REAL NAME (FIX)
+  ===================================================== */
+  await TripBuddy.findOneAndUpdate(
+    { tripId: trip._id, userId: user._id },
+    {
+      $set: {
+        firstName: user.firstName || 'Unknown',
+        lastName: user.lastName || '',
+        email: user.email,
+        status: 'joined',
+        role: 'admin',
+        invitedBy: user._id
+      },
+      $setOnInsert: {
+        tripId: trip._id,
+        userId: user._id
+      }
+    },
+    { upsert: true }
+  );
+
+  /* =====================================================
+     2️⃣ BLOCK SELF (EMAIL + NAME)
+  ===================================================== */
+  const meEmail = user.email?.toLowerCase() ?? '';
+  const meFirst = user.firstName?.toLowerCase() ?? '';
+  const meLast = user.lastName?.toLowerCase() ?? '';
+
+  const cleanBuddies = buddies.filter((b: any) => {
+    if (b.email && b.email.toLowerCase() === meEmail) return false;
+
+    if (
+      b.firstName?.trim().toLowerCase() === meFirst &&
+      b.lastName?.trim().toLowerCase() === meLast
+    ) return false;
+
+    return true;
+  });
+
+  /* =====================================================
+     3️⃣ INSERT OTHER BUDDIES
+  ===================================================== */
+  const docs = cleanBuddies.map((b: any) => ({
+    tripId: trip._id,
+    firstName: b.firstName?.trim(),
+    lastName: b.lastName?.trim(),
+    email: b.email?.trim()?.toLowerCase(),
+    phone: b.phone?.trim(),
+    status: b.email || b.phone ? 'invited' : 'uninvited',
+    role: 'member',
+    invitedBy: user._id
+  }));
+
+  for (const d of docs) {
+    if (!d.firstName || !d.lastName) {
+      return res.status(400).json({ message: 'First & last name required' });
     }
+  }
 
-    if (!Array.isArray(buddies) || buddies.length === 0) {
-        return res.status(400).json({ message: 'No buddies provided' });
-    }
+  if (docs.length) {
+    await TripBuddy.insertMany(docs, { ordered: false });
+  }
 
-    if (!mongoose.Types.ObjectId.isValid(tripId)) {
-        return res.status(400).json({ message: 'Invalid trip id' });
-    }
-
-    const user = await User.findOne({ firebaseUid });
-    if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-    }
-
-    const trip = await Trip.findById(tripId);
-    if (!trip) {
-        return res.status(404).json({ message: 'Trip not found' });
-    }
-
-    /* -----------------------------
-       BUILD DOCUMENTS (NO SIDE EFFECTS)
-    ------------------------------ */
-    const docs = buddies.map((b: any) => {
-        const doc: any = {
-            tripId: trip._id,
-            firstName: b.firstName?.trim(),
-            lastName: b.lastName?.trim(),
-            invitedBy: user._id,
-            status: 'invited'
-        };
-
-        if (b.email && b.email.trim()) {
-            doc.email = b.email.trim().toLowerCase();
-        }
-
-        if (b.phone && b.phone.trim()) {
-            doc.phone = b.phone.trim();
-        }
-
-        return doc;
-    });
-
-    /* -----------------------------
-       VALIDATION
-    ------------------------------ */
-    for (const d of docs) {
-        if (!d.firstName || !d.lastName) {
-            return res.status(400).json({
-                message: 'First name and last name are required for all buddies'
-            });
-        }
-    }
-
-    /* -----------------------------
-       LOG (AFTER docs EXISTS)
-    ------------------------------ */
-    console.log(
-        'Saving buddies for trip:',
-        tripId,
-        docs.map(d => `${d.firstName} ${d.lastName}`)
-    );
-
-    /* -----------------------------
-       INSERT
-    ------------------------------ */
-    try {
-        await TripBuddy.insertMany(docs, { ordered: false });
-
-        return res.status(201).json({
-            message: 'Buddies invited successfully',
-            count: docs.length
-        });
-    } catch (err: any) {
-        if (err.code === 11000) {
-            return res.status(201).json({
-                message: 'Some buddies were already invited'
-            });
-        }
-        throw err;
-    }
+  return res.status(201).json({ message: 'Buddies saved' });
 };
 
+
+
 export const getTripBuddies = async (req: Request, res: Response) => {
-    const { tripId } = req.params;
+  const { tripId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(tripId)) {
-        return res.status(400).json({ message: 'Invalid trip id' });
-    }
+  if (!mongoose.Types.ObjectId.isValid(tripId)) {
+    return res.status(400).json({ message: 'Invalid trip id' });
+  }
 
-    const buddies = await TripBuddy.find({ tripId })
-        .select('-__v')
-        .sort({ createdAt: 1 })
-        .lean();
+  const buddies = await TripBuddy.find({ tripId })
+    .sort({ createdAt: 1 })
+    .lean();
 
-    res.json(buddies);
+  res.json(buddies);
 };

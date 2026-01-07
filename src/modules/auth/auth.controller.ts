@@ -6,33 +6,68 @@ export const syncFirebaseUser = async (req: Request, res: Response) => {
   const firebaseUid = req.firebaseUid;
   const email = req.firebaseEmail;
 
-  const { firstName, lastName } = req.body;
-
   if (!firebaseUid || !email) {
     return res.status(400).json({ message: 'Invalid Firebase user' });
   }
 
-  let user = await User.findOne({ firebaseUid });
-
-  if (!user) {
-    user = await User.create({
-      firebaseUid,
-      email,
-      firstName,
-      lastName,
-      isVerified: false,
-      verificationDeadline: new Date(Date.now() + 60 * 60 * 1000)
+  /* ------------------------------------------------
+     🔒 HARD VERIFY FIREBASE USER EXISTS
+  ------------------------------------------------ */
+  try {
+    await admin.auth().getUser(firebaseUid);
+  } catch {
+    return res.status(401).json({
+      message: 'Firebase user does not exist'
     });
   }
 
-  res.json({
+  /* ------------------------------------------------
+     🔍 CHECK IF USER ALREADY EXISTS IN MONGO
+  ------------------------------------------------ */
+  let user = await User.findOne({ firebaseUid });
+
+  // ✅ LOGIN CASE
+  if (user) {
+    return res.json({
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName ?? null,
+      lastName: user.lastName ?? null,
+      isVerified: user.isVerified,
+      verificationDeadline: user.verificationDeadline ?? null
+    });
+  }
+
+  /* ------------------------------------------------
+     🆕 REGISTER CASE — REQUIRE NAMES
+  ------------------------------------------------ */
+  const { firstName, lastName } = req.body;
+
+  if (!firstName || !lastName) {
+    return res.status(400).json({
+      message: 'First name and last name are required for registration'
+    });
+  }
+
+  user = await User.create({
+    firebaseUid,
+    email,
+    firstName,
+    lastName,
+    isVerified: false,
+    verificationDeadline: new Date(Date.now() + 60 * 60 * 1000)
+  });
+
+  return res.status(201).json({
     id: user._id,
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    isVerified: user.isVerified
+    isVerified: user.isVerified,
+    verificationDeadline: user.verificationDeadline
   });
 };
+
 
 
 export const getMe = async (req: Request, res: Response) => {
@@ -73,5 +108,6 @@ export const getMe = async (req: Request, res: Response) => {
     isVerified: user.isVerified,
     verificationDeadline: user.verificationDeadline ?? null
   });
+
 };
 
