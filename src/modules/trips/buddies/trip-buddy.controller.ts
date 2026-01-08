@@ -86,6 +86,30 @@ export const addTripBuddies = async (req: Request, res: Response) => {
   return res.status(201).json({ message: 'Buddies saved' });
 };
 
+export const inviteTripBuddy = async (req: Request, res: Response) => {
+  const { tripId } = req.params;
+  const { firstName, lastName, email } = req.body;
+  const firebaseUid = req.firebaseUid;
+
+  if (!firebaseUid) return res.status(401).json({ message: 'Unauthorized' });
+  if (!email) return res.status(400).json({ message: 'Email is required' });
+
+  const user = await User.findOne({ firebaseUid });
+  if (!user) return res.status(404).json({ message: 'User not found' });
+
+  await TripBuddy.create({
+    tripId,
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    email: email.toLowerCase(),
+    status: 'invited',
+    role: 'member',
+    invitedBy: user._id
+  });
+
+  res.status(201).json({ message: 'Buddy invited' });
+};
+
 
 
 export const getTripBuddies = async (req: Request, res: Response) => {
